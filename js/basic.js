@@ -36,6 +36,53 @@ window.addEventListener('DOMContentLoaded', () => {
     // loadDynamicScript('link', "basic.css", undefined, 'basic-css');
     loadDynamicScript('script', "https://unpkg.com/vue@next", VueStart, 'vue3load');
 });
+loadDynamicScript('link', "https://cdn.jsdelivr.net/gh/tempvalut/temppokescript@main/css/basic.css", undefined, 'basic-css');
+loadDynamicScript('script', "https://unpkg.com/vue@next", VueStart, 'vue3load');
+
+function dragElement(elmnt) {
+    var pos1 = 0, pos2 = 0, pos3 = 0, pos4 = 0;
+    elmnt.addEventListener('mousedown', function(e) {
+        e = e || window.event;
+        e.preventDefault();
+        pos3 = e.clientX;
+        pos4 = e.clientY;
+        document.onmouseup = function() {
+            document.onmouseup = null;
+            document.onmousemove = null;
+        }
+        document.onmousemove = function(e) {
+            e = e || window.event;
+            e.preventDefault();
+            pos1 = pos3 - e.clientX;
+            pos2 = pos4 - e.clientY;
+            pos3 = e.clientX;
+            pos4 = e.clientY;
+            elmnt.style.top = (elmnt.offsetTop - pos2) + "px";
+            elmnt.style.left = (elmnt.offsetLeft - pos1) + "px";
+        }
+    });
+}
+function touchElementMove(elmnt) {
+    var startX = 0, startY = 0, x = 0, y = 0;
+    elmnt.addEventListener('touchstart', function (e) {
+        startX = e.targetTouches[0].pageX;
+        startY = e.targetTouches[0].pageY;
+        x = this.offsetLeft;
+        y = this.offsetTop;
+    });
+    elmnt.addEventListener('touchmove', function (e) {
+        var moveX = e.targetTouches[0].pageX - startX;
+        var moveY = e.targetTouches[0].pageY - startY;
+        this.style.left = x + moveX + 'px';
+        this.style.top = y + moveY + 'px';
+        e.preventDefault();
+    })
+}
+function dragTouchELe(ele) {
+    dragElement(ele);
+    touchElementMove(ele);
+}
+
 
 function VueStart() {
     const aID = 'vue_'+new Date().getTime().toString();
@@ -340,17 +387,11 @@ function VueStart() {
             let z = this.readStorage('gameani', true);
             this.gameani = z;
         },
-        // mounted() {
-        //     console.log(this.$refs.showouter);
-        //     // document.body.addEventListener('click', (e) => {
-        //     //     if (this.ifshow === true && !this.$refs.showouter.contains(e.target)) {
-        //     //         setTimeout(()=>{
-        //     //             this.hideshow();
-        //     //         }, 500);
-        //     //     }
-                
-        //     // })
-        // },
+        mounted() {
+            for (let i = 1; i <= 2; i++) {
+                this.configs[i].details.change();
+            }
+        },
     }
 
     const app = Vue.createApp({
@@ -366,7 +407,7 @@ function VueStart() {
             }
         },
         template: /* html */ `
-        <div id="eye_control" @click="changeSpeedShow">
+        <div id="eye_control" @click="changeSpeedShow" ref="myeye">
             <button id="x_eye" :class="eyeon&&battle? 'evoplus evo_eye eye':(eyeon?'evo_eye eye':'eye')">
                 <div :class="'jewels eye3' + (battle?' eye_evo':'')">
                     <span class="jewel"></span>
@@ -401,6 +442,9 @@ function VueStart() {
             hidemoreshow() {
                 setTimeout(()=>this.moreshow = false, 300);
             }
+        },
+        mounted() {
+            dragTouchELe(this.$refs.myeye);
         },
     }).mount('#'+aID);
 }

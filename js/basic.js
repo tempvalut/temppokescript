@@ -388,9 +388,12 @@ function VueStart() {
             this.gameani = z;
         },
         mounted() {
-            for (let i = 1; i <= 2; i++) {
-                this.configs[i].details.change();
-            }
+            setTimeout(()=>{
+                for (let i = 1; i <= 2; i++) {
+                    this.configs[i].details.change();
+                    this.configs[i].details.change();
+                }
+            }, 2000)
         },
     }
 

@@ -28,7 +28,12 @@
   };
 
   window.addEventListener("DOMContentLoaded", () => {
-    loadDynamicScript('link', "https://cdn.jsdelivr.net/gh/tempvalut/temppokescript@main/css/evolved.css", undefined, 'evolved-css');
+    loadDynamicScript(
+      "link",
+      "https://cdn.jsdelivr.net/gh/tempvalut/temppokescript@main/css/evolved.css",
+      undefined,
+      "evolved-css"
+    );
     // loadDynamicScript("link", "evolved.css", undefined, "evolved-css");
     loadDynamicScript(
       "script",
@@ -37,8 +42,18 @@
       "vue3load"
     );
   });
-  loadDynamicScript('link', "https://cdn.jsdelivr.net/gh/tempvalut/temppokescript@main/css/evolved.css", undefined, 'evolved-css');
-  loadDynamicScript('script', "https://unpkg.com/vue@next", VueStart, 'vue3load');
+  loadDynamicScript(
+    "link",
+    "https://cdn.jsdelivr.net/gh/tempvalut/temppokescript@main/css/evolved.css",
+    undefined,
+    "evolved-css"
+  );
+  loadDynamicScript(
+    "script",
+    "https://unpkg.com/vue@next",
+    VueStart,
+    "vue3load"
+  );
 
   function dragElement(elmnt) {
     var pos1 = 0,
@@ -132,8 +147,232 @@
         `,
     };
 
+    let inHunting = false,
+      huntGlobal = null;
+    const huntPro = {
+      props: ["hunt_show", "hideHunt"],
+      data() {
+        return {
+          status: 1,
+          alerts: [
+            "当前捕虫未开放",
+            "请先进入捕虫界面，以获取数据！  然后点击下方按钮",
+          ],
+          score: 0,
+          power: 0,
+          ball: 0,
+          openmap: [],
+          bossmap: null,
+          mapSe: 1,
+          timesExc: 0,
+          logshow: false,
+          logs: [],
+        };
+      },
+      methods: {
+        getAll() {
+          try {
+            if (com.mvc.models.vos.huntingParty.HuntPartyVO.isOpen) {
+              if (
+                com.mvc.models.vos.huntingParty.HuntPartyVO.catchCount === 0
+              ) {
+                this.status = 1;
+              } else {
+                this.status = 2;
+                this.score = com.mvc.models.vos.huntingParty.HuntPartyVO.score;
+                this.power = +com.mvc.models.vos.huntingParty.HuntPartyVO.catchCount;
+                this.ball = +com.common.util.xmlVOHandler.GetPropFactor.getPropVO2(868).count;
+                this.getMap();
+              }
+            } else {
+              this.status = 0;
+            }
+          } catch (e) {
+            console.error(e);
+          }
+        },
+        getMap() {
+          try {
+            this.openmap = [];
+            let len = com.mvc.models.vos.huntingParty.HuntPartyVO.lastNodeId;
+            for ( let i = 0; i <= len; i++) {
+              let tmp = com.common.util.xmlVOHandler.GetHuntingParty.nodeVec[i];
+              if (tmp.type === 0)
+                this.openmap.push({ name: tmp.name, id: tmp.id });
+              else {
+                if (tmp.bossIndex === 5) this.bossmap = null;
+                else if (tmp.id === i + 1 && i === len)
+                  this.bossmap = { name: tmp.name, id: tmp.id };
+                else this.bossmap = null;
+              }
+            }
+          } catch (e) {
+            console.error(e);
+          }
+        },
+        showLog() {
+          this.logs = [];
+          this.logshow = true;
+        },
+        hideLog() {
+          this.getAll();
+          if (!inHunting) {
+            this.logs = [];
+            this.logshow = false;
+          }
+        },
+        refreshPage() {
+          window.location.reload();
+        },
+        execute(id, boss) {
+          this.getAll();
+          if (this.power <= 0) return;
+          if (id !== undefined) {
+            let exeTimes = this.timesExc;
+            if (boss) {
+              exeTimes = 1;
+            }
+            if (exeTimes <= 0) return;
+            if (this.ball < 5 * exeTimes) return;
+            this.showLog();
+            this.hunt(id, exeTimes, exeTimes);
+          }
+        },
+        stopHunt() {
+          inHunting = false;
+        },
+        scrollToElement() {
+          const el = this.$refs.scrollToMe;
+          if (el) {
+            el.scrollTop = el.scrollHeight;
+          }
+        },
+        stopHuntNoti() {
+          inHunting = false;
+          this.getAll();
+          this.logs.push("!!!!!!!!!!!!");
+          this.logs.push("积分请到排行榜查看(及时更新)");
+          this.logs.push("用完后请刷新游戏, 避免奇奇怪怪的bug");
+          this.logs.push("该窗口若无法关闭, 点击左边的[停止执行], 再点下[关闭窗口]就能关闭了");
+          this.scrollToElement();
+        },
+        hunt(id, cur, total) {
+          if (cur === 0) {
+            this.stopHuntNoti();
+            return;
+          }
+          inHunting = true;
+          try {
+            com.common.net.Client.instance.callObjs.note4102.write4102({
+              id: id,
+            });
+            cur--;
+            setTimeout(() => {
+              this.logs.push(`==== ${total - cur} of ${total} ====`);
+              let meetX =
+                com.mvc.models.proxy.huntingParty.HuntingPartyPro.meetObj;
+              let [mid, mhp] = [meetX.spId, String(meetX.hp)];
+              let mname =
+                com.common.util.xmlVOHandler.GetElfFactor.allElfStaticObj[mid]
+                  .name;
+              this.logs.push(`遇到精灵: ${mid} | ${mname}`);
+              this.logs.push("丢球中.");
+              this.dropBall(mid, mhp, 1).then(() => {
+                if (inHunting) {
+                  this.hunt(id, cur, total);
+                } else {
+                  this.stopHuntNoti();
+                  return;
+                }
+              });
+            }, 1001+Math.round(Math.random()*100));
+          } catch (e) {
+            console.error(e);
+          }
+        },
+        async dropBall(id, hp, used) {
+          const pr = new Promise((resolve) => {
+            try {
+              com.common.net.Client.instance.callObjs.note4120.write4120(
+                { status: [6], totalHp: hp, currentHp: "1", elfId: id },
+                { id: 868 }
+              );
+              setTimeout(() => {
+                if (huntGlobal && huntGlobal !== null) {
+                  if (huntGlobal.status === "success") {
+                    if (huntGlobal.data.reward && huntGlobal.data.reward.catchScore) {
+                      this.logs.push(
+                        `成功! 获得积分👉${huntGlobal.data.reward.catchScore}👈, 用球${used}个`
+                      );
+                      this.logs.push("____________________");
+                      this.scrollToElement();
+                      resolve("ook");
+                    } else {
+                      used++;
+                      this.logs[this.logs.length - 1] = this.logs[this.logs.length - 1] + ".";
+                      return this.dropBall(id, hp, used);
+                    }
+                  } else {
+                    this.logs.push("Error: " + huntGlobal.data.msg);
+                  }
+                }
+              }, 501+Math.round(Math.random()*100));
+            } catch (e) {
+              console.error(e);
+            }
+          });
+          return pr;
+        },
+      },
+      template: /* html */ `
+    <div class="black-curtain" v-show="hunt_show" @click.self="hideHunt">
+    <div class="all-func-outer my-funcs hunt-outer">
+    <div class="one-func">
+        <div class="func-title">捕虫</div>
+        <div v-if="status===0" class="hunt-alert">{{alerts[0]}}</div>
+        <div v-else-if="status===1" class="hunt-alert">
+          <div>{{alerts[1]}}</div>
+          <div class="huntPro-next" @click="getAll">下一步</div>
+        </div>
+        <template v-else-if="status===2">
+        <div class="huntPro-module"><span>积分: {{score}}</span><span>体力: {{power}}</span><span>球: {{ball}}</span>
+          <span class="huntPro-next" @click="getAll">刷新🔃</span>
+        </div>
+        <div class="huntPro-module hunt-module-normal">
+        <div class="huntPro-per"><span>选择地图(不含BOSS)</span>
+        <select v-model="mapSe"><option v-for="item in openmap" :key="item.id" :value="item.id">{{item.name}}</option></select>
+        </div>
+        <div class="huntPro-per"><span>欲捕捉次数</span>
+          <div class="huntPro-slider"><input type="range" min="0" :max="power" v-model="timesExc">
+          <span class="huntPro-slider-txt">{{timesExc}}</span></div>
+        </div>
+        <div>注: 当公园球数量小于5×执行次数时, 不予执行; 为了愉快玩耍, 请确保包里有1000球以上</div>
+        <div class="huntPro-next" @click="execute(mapSe)">执行</div>
+        </div>
+        <div class="huntPro-module hunt-module-normal" v-if="bossmap !== null">
+        <div class="huntPro-per"><span>当前可用BOSS地图</span><div class="huntPro-next" @click="execute(bossmap.id,true)">{{bossmap.name}}</div></div>
+        <div class="huntPro-per">注: 点击即可执行, 只捕捉一次; 为了防止Bug, 最后一处BOSS地图不予执行, 请手动捕捉</div>
+        </div>
+        </template>
+    </div>
+    </div>
+    </div>
+    <div class="black-curtain" v-show="logshow">
+      <div class="all-func-outer my-funcs hunt-outer-logs">
+        <div class="log-area" ref="scrollToMe"><li v-for="(item,idx) in logs" :key="idx">{{item}}</li></div>
+        <div class="btn-area">
+          <div class="huntPro-next" @click="stopHunt">停止执行</div>
+          <div class="huntPro-next" @click="refreshPage">刷新网页</div>
+          <div class="huntPro-next" @click="hideLog">关闭窗口</div>
+        </div>
+      </div>
+    </div>
+    `,
+    };
+
     const ACTUAL_PVP_NOTE = "note6102: ",
-      UPDATE_ABILITY = "buff加成对精灵属性的影响";
+      UPDATE_ABILITY = "buff加成对精灵属性的影响",
+      HUNT_PRO_RES = "note4120=";
 
     const speedup = {
       components: {
@@ -250,12 +489,14 @@
       components: {
         controller,
         switch_toggle,
+        huntPro,
       },
       data() {
         return {
           ctrlani: true,
           pcfull: false,
           gameani: false,
+          hunt_show: false,
           configs: [
             {
               tit: "界面字号设置",
@@ -333,6 +574,12 @@
           this.hideshow();
           setTimeout(() => (this.ctrlani = true), 350);
         },
+        hideHunt() {
+          this.hunt_show = false;
+        },
+        showHunt() {
+          this.hunt_show = true;
+        },
       },
       watch: {
         pcfull(val) {
@@ -372,7 +619,10 @@
                     </template>
                 </li>
             </ul>
-            <div class="settings-tail">版本号: v2.1.0_alpha_2022.02.14</div>
+            <div>辅助小功能</div>
+            <div class="huntPro-next" @click="showHunt">懒人捕虫</div>
+            <div class="settings-tail">版本号: v2.1.1_alpha_2022.02.22</div>
+            <huntPro :hunt_show="hunt_show" :hideHunt="hideHunt"></huntPro>
         </div>
         </div>
         `,
@@ -436,7 +686,14 @@
           this.clickElf = +b;
         },
         handleMSG(a) {
-          if (com.mvc.models.vos.fighting.FightingConfig.isPVP === true || a.indexOf(ACTUAL_PVP_NOTE) >= 0) {
+          if (inHunting && a.indexOf(HUNT_PRO_RES) >= 0) {
+            huntGlobal = JSON.parse(a.split(HUNT_PRO_RES)[1]);
+            return 2;
+          }
+          if (
+            com.mvc.models.vos.fighting.FightingConfig.isPVP === true ||
+            a.indexOf(ACTUAL_PVP_NOTE) >= 0
+          ) {
             this.player0 = com.mvc.models.vos.login.PlayerVO.bagElfVec;
             this.player1 = com.mvc.models.vos.fighting.NPCVO.bagElfVec;
             return 1;
@@ -466,7 +723,11 @@
             return this.PLAYER1[Math.min(this.clickElf, this.PLAYER1.length)];
         },
         curAbi() {
-          if (!this.currentDeatil || Object.keys(this.currentDeatil).length <= 0) return [];
+          if (
+            !this.currentDeatil ||
+            Object.keys(this.currentDeatil).length <= 0
+          )
+            return [];
           const ns = [
             "currentHp",
             "attack",
@@ -490,7 +751,11 @@
           return d;
         },
         curSkill() {
-          if (!this.currentDeatil || Object.keys(this.currentDeatil).length <= 0) return [];
+          if (
+            !this.currentDeatil ||
+            Object.keys(this.currentDeatil).length <= 0
+          )
+            return [];
           if (
             this.currentDeatil.featureVO &&
             this.currentDeatil.featureVO.id === "10284"

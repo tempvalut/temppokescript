@@ -180,8 +180,11 @@
               } else {
                 this.status = 2;
                 this.score = com.mvc.models.vos.huntingParty.HuntPartyVO.score;
-                this.power = +com.mvc.models.vos.huntingParty.HuntPartyVO.catchCount;
-                this.ball = +com.common.util.xmlVOHandler.GetPropFactor.getPropVO2(868).count;
+                this.power =
+                  +com.mvc.models.vos.huntingParty.HuntPartyVO.catchCount;
+                this.ball =
+                  +com.common.util.xmlVOHandler.GetPropFactor.getPropVO2(868)
+                    .count;
                 this.getMap();
               }
             } else {
@@ -195,7 +198,7 @@
           try {
             this.openmap = [];
             let len = com.mvc.models.vos.huntingParty.HuntPartyVO.lastNodeId;
-            for ( let i = 0; i <= len; i++) {
+            for (let i = 0; i <= len; i++) {
               let tmp = com.common.util.xmlVOHandler.GetHuntingParty.nodeVec[i];
               if (tmp.type === 0)
                 this.openmap.push({ name: tmp.name, id: tmp.id });
@@ -253,7 +256,9 @@
           this.logs.push("!!!!!!!!!!!!");
           this.logs.push("积分请到排行榜查看(及时更新)");
           this.logs.push("用完后请刷新游戏, 避免奇奇怪怪的bug");
-          this.logs.push("该窗口若无法关闭, 点击左边的[停止执行], 再点下[关闭窗口]就能关闭了");
+          this.logs.push(
+            "该窗口若无法关闭, 点击左边的[停止执行], 再点下[关闭窗口]就能关闭了"
+          );
           this.scrollToElement();
         },
         hunt(id, cur, total) {
@@ -285,7 +290,7 @@
                   return;
                 }
               });
-            }, 1001+Math.round(Math.random()*100));
+            }, 1001 + Math.round(Math.random() * 100));
           } catch (e) {
             console.error(e);
           }
@@ -300,7 +305,10 @@
               setTimeout(() => {
                 if (huntGlobal && huntGlobal !== null) {
                   if (huntGlobal.status === "success") {
-                    if (huntGlobal.data.reward && huntGlobal.data.reward.catchScore) {
+                    if (
+                      huntGlobal.data.reward &&
+                      huntGlobal.data.reward.catchScore
+                    ) {
                       this.logs.push(
                         `成功! 获得积分👉${huntGlobal.data.reward.catchScore}👈, 用球${used}个`
                       );
@@ -309,14 +317,15 @@
                       resolve("ook");
                     } else {
                       used++;
-                      this.logs[this.logs.length - 1] = this.logs[this.logs.length - 1] + ".";
+                      this.logs[this.logs.length - 1] =
+                        this.logs[this.logs.length - 1] + ".";
                       return this.dropBall(id, hp, used);
                     }
                   } else {
                     this.logs.push("Error: " + huntGlobal.data.msg);
                   }
                 }
-              }, 501+Math.round(Math.random()*100));
+              }, 501 + Math.round(Math.random() * 100));
             } catch (e) {
               console.error(e);
             }
@@ -372,7 +381,10 @@
 
     const ACTUAL_PVP_NOTE = "note6102: ",
       UPDATE_ABILITY = "buff加成对精灵属性的影响",
-      HUNT_PRO_RES = "note4120=";
+      HUNT_PRO_RES = "note4120=",
+      BOSS_HP_NOTE = "write33226=",
+      BOSS_HP_STOP = "note33227=",
+      DATAHANDLER = "更新了状态极巨化首领";
 
     const speedup = {
       components: {
@@ -496,6 +508,7 @@
           ctrlani: true,
           pcfull: false,
           gameani: false,
+          bossonehp: true,
           hunt_show: false,
           configs: [
             {
@@ -544,6 +557,19 @@
                   this.setStorage("gameani", x);
                   this.configs[2].details.default = x;
                   this.gameani = x;
+                },
+              },
+            },
+            {
+              tit: "极巨BOSS自动1血",
+              type: 1,
+              details: {
+                default: bool(this.readStorage("bossonehp", true)),
+                change: () => {
+                  let x = !bool(this.readStorage("bossonehp", true));
+                  this.setStorage("bossonehp", x);
+                  this.configs[3].details.default = x;
+                  this.bossonehp = x;
                 },
               },
             },
@@ -603,6 +629,13 @@
             console.warn(e);
           }
         },
+        bossonehp(val) {
+          try {
+            window.BOSS1HP = val;
+          } catch (e) {
+            console.warn(e);
+          }
+        },
       },
       template: /* html */ `
         <div v-show="ifshow"><div class="settings-background" @click.self="delayHideShow"></div>
@@ -621,7 +654,7 @@
             </ul>
             <div>辅助小功能</div>
             <div class="huntPro-next" @click="showHunt">懒人捕虫</div>
-            <div class="settings-tail">版本号: v2.1.1_alpha_2022.02.22</div>
+            <div class="settings-tail">版本号: v2.1.2_alpha_2022.03.07</div>
             <huntPro :hunt_show="hunt_show" :hideHunt="hideHunt"></huntPro>
         </div>
         </div>
@@ -633,10 +666,11 @@
         this.pcfull = y;
         let z = this.readStorage("gameani", true);
         this.gameani = z;
+        this.bossonehp = this.readStorage("bossonehp", true);
       },
       mounted() {
         setTimeout(() => {
-          for (let i = 1; i <= 2; i++) {
+          for (let i = 1; i <= 3; i++) {
             this.configs[i].details.change();
             this.configs[i].details.change();
           }
@@ -686,6 +720,23 @@
           this.clickElf = +b;
         },
         handleMSG(a) {
+          if (a.indexOf(BOSS_HP_NOTE) >= 0) {
+            window.preBOSS1HP = true;
+          }
+          if (a.indexOf(BOSS_HP_STOP) >= 0) {
+            window.preBOSS1HP === false;
+          }
+          if (
+            window.preBOSS1HP === true &&
+            a.indexOf(DATAHANDLER) >= 0 &&
+            window.BOSS1HP === true
+          ) {
+            setTimeout(() => {
+              for (let i of com.mvc.models.vos.fighting.NPCVO.bagElfVec) {
+                i.currentHp = "1";
+              }
+            }, 400);
+          }
           if (inHunting && a.indexOf(HUNT_PRO_RES) >= 0) {
             huntGlobal = JSON.parse(a.split(HUNT_PRO_RES)[1]);
             return 2;

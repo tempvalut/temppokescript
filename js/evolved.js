@@ -406,6 +406,11 @@
           status: false,
         };
       },
+      computed: {
+        plantdate() {
+          return new Date().getTime() <= 1647532569461;
+        },
+      },
       template: /* html */ `
         <div class="black-curtain" v-show="ifshow" @click.self="changeshow">
             <div class="all-func-outer">
@@ -421,6 +426,7 @@
                         </div>
                     </div>
                     <div @click="displaymore" class="speed-up-more">更多功能</div>
+                    <div v-if="plantdate" @click="plantCheat" class="speed-up-more">Cheat植树节水滴</div>
                 </div>
             </div>
         </div>
@@ -436,6 +442,39 @@
         },
       },
       methods: {
+        plantCheat() {
+          try {
+            com.common.net.Client.instance.callObjs.note34902.write34901();
+            setTimeout(() => {
+              let Checkpoints = 4 + Math.round(Math.random() * 3);
+              if (Checkpoints % 2 === 1) Checkpoints += 1;
+              let maxCount = Checkpoints * 20 + Math.round(Math.random() * 22);
+              let bigCount = Checkpoints * 5 + Math.round(Math.random() * 8);
+              let middleCount = 3 + Math.round(Math.random() * 7);
+              let smallCount = 1 + Math.round(Math.random() * 5);
+              let getPoint =
+                ((Checkpoints + 1) * Checkpoints) / 2 +
+                maxCount +
+                bigCount * 2 +
+                middleCount * 3 +
+                smallCount * 5;
+              try {
+                com.common.net.Client.instance.callObjs.note34902.write34902({
+                  Checkpoints,
+                  maxCount,
+                  bigCount,
+                  middleCount,
+                  smallCount,
+                  getPoint,
+                });
+              } catch (e) {
+                console.error(e);
+              }
+            }, 1500);
+          } catch (e) {
+            console.error(e);
+          }
+        },
         offmanual() {
           this.status = false;
         },

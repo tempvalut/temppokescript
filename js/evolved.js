@@ -444,6 +444,7 @@
       methods: {
         plantCheat() {
           try {
+            this.changeshow();
             com.common.net.Client.instance.callObjs.note34902.write34901();
             setTimeout(() => {
               let Checkpoints = 4 + Math.round(Math.random() * 3);
@@ -693,7 +694,7 @@
             </ul>
             <div>辅助小功能</div>
             <div class="huntPro-next" @click="showHunt">懒人捕虫</div>
-            <div class="settings-tail">版本号: v2.1.2_alpha_2022.03.07</div>
+            <div class="settings-tail">版本号: v2.1.3_alpha_2022.03.11</div>
             <huntPro :hunt_show="hunt_show" :hideHunt="hideHunt"></huntPro>
         </div>
         </div>
